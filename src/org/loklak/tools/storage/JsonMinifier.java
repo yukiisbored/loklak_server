@@ -17,17 +17,22 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.loklak.tools;
+package org.loklak.tools.storage;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.Deflater;
+import java.util.zip.GZIPOutputStream;
 
-import org.eclipse.jetty.util.log.Log;
 import org.loklak.data.DAO;
+import org.loklak.tools.Compression;
+import org.loklak.tools.UTF8;
+import org.loklak.tools.json.JSONObject;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonMinifier {
 
@@ -38,7 +43,7 @@ public class JsonMinifier {
         this.short2key = new ConcurrentHashMap<>();
     }
     
-    public Capsule minify(Map<String, Object> json) throws JsonProcessingException {
+    public Capsule minify(Map<String, Object> json) {
         if (json == null) return null;
         LinkedHashMap<String, Object> minified = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry: json.entrySet()) {
@@ -60,18 +65,26 @@ public class JsonMinifier {
         
         byte[] capsule; // byte 0 is a flag: 0 = raw json, 1 = compressed json
 
-        private Capsule(Map<String, Object> json) throws JsonProcessingException {
-            byte[] b =  new ObjectMapper().writer().writeValueAsBytes(json);
-            byte[] c = Compression.gzip(b);
-            if (b.length <= c.length) {
-                this.capsule = new byte[b.length + 1];
-                this.capsule[0] = 0;
-                System.arraycopy(b, 0, this.capsule, 1, b.length);
-            } else {
+        private Capsule(Map<String, Object> json) {
+            JSONObject jo = new JSONObject(json);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+            GZIPOutputStream out = null; try {out = new GZIPOutputStream(baos, 1024){{def.setLevel(Deflater.BEST_COMPRESSION);}};} catch (IOException e) {}
+            OutputStreamWriter osw = new OutputStreamWriter(out);
+            jo.write(osw);
+            try {osw.close();} catch (IOException e) {}
+            //byte[] b = new ObjectMapper().writer().writeValueAsBytes(json);
+            //byte[] c = Compression.gzip(b);
+            byte[] c = baos.toByteArray();
+            //if (b.length <= c.length) {
+            //    this.capsule = new byte[b.length + 1];
+            //    this.capsule[0] = 0;
+            //    System.arraycopy(b, 0, this.capsule, 1, b.length);
+            //} else {
                 this.capsule = new byte[c.length + 1];
                 this.capsule[0] = 1;
                 System.arraycopy(c, 0, this.capsule, 1, c.length);
-            }
+            //}
+            //System.out.print("DEBUG " + this.getRawJson());
         }
         
         public Map<String, Object> getJson() {
@@ -95,7 +108,7 @@ public class JsonMinifier {
                 Map<String, Object> json = DAO.jsonMapper.readValue(x, DAO.jsonTypeRef);
                 return json;
             } catch (Throwable e) {
-                Log.getLog().warn("cannot parse capsule \"" + UTF8.String(this.capsule) + "\"", e);
+                DAO.log("cannot parse capsule \"" + UTF8.String(this.capsule) + "\"");
             } 
             return null;
         }

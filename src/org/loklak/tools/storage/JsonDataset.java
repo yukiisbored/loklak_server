@@ -17,7 +17,7 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.loklak.tools;
+package org.loklak.tools.storage;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.loklak.tools.JsonDump.ConcurrentReader;
+import org.loklak.tools.storage.JsonDump.ConcurrentReader;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -60,14 +60,10 @@ public class JsonDataset {
                             while ((obj = reader.take()) != JsonDump.POISON_JSON_MAP) {
                                 // write index to object
                                 Object op = obj.remove(new String(JsonDump.OPERATION_KEY));
-                                try {
-                                    JsonMinifier.Capsule json = JsonDataset.this.minifier.minify(obj);
-                                    for (Map.Entry<String, Index> idxo: JsonDataset.this.index.entrySet()) {
-                                        Object x = obj.get(idxo.getKey());
-                                        if (x != null) idxo.getValue().put(x, json);
-                                    }
-                                } catch (JsonProcessingException e) {
-                                    e.printStackTrace();
+                                JsonMinifier.Capsule json = JsonDataset.this.minifier.minify(obj);
+                                for (Map.Entry<String, Index> idxo: JsonDataset.this.index.entrySet()) {
+                                    Object x = obj.get(idxo.getKey());
+                                    if (x != null) idxo.getValue().put(x, json);
                                 }
                             }
                         } catch (InterruptedException e) {

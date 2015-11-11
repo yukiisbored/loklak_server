@@ -17,7 +17,7 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.loklak.api.server;
+package org.loklak.http;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -43,7 +43,6 @@ import javax.servlet.http.Part;
 
 import org.elasticsearch.common.Base64;
 import org.loklak.LoklakServer;
-import org.loklak.data.AccessTracker;
 import org.loklak.data.DAO;
 import org.loklak.tools.DateParser;
 import org.loklak.tools.UTF8;
@@ -273,14 +272,15 @@ public class RemoteAccess {
         return localhostNames.contains(host);
     }
 
-    public static Map<String, String> getQueryMap(String query)   {  
-        if (query == null) return null;
-        String[] params = query.split("&");  
-        Map<String, String> map = new HashMap<String, String>();  
+    public static Map<String, String> getQueryMap(String query) {
+        Map<String, String> map = new HashMap<String, String>();
+        if (query == null) return map;
+        String[] params = query.split("&");
         for (String param : params) {
             int p = param.indexOf('=');
-            if (p >= 0)
-                try {map.put(param.substring(0, p), URLDecoder.decode(param.substring(p + 1), "UTF-8"));} catch (UnsupportedEncodingException e) {}
+            if (p >= 0) try {
+                map.put(param.substring(0, p), URLDecoder.decode(param.substring(p + 1), "UTF-8"));
+            } catch (UnsupportedEncodingException e) {}
         }  
         return map;  
     }

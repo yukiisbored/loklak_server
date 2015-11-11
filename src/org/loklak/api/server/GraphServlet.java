@@ -1,6 +1,6 @@
 /**
- *  UserServlet
- *  Copyright 27.05.2015 by Michael Peter Christen, @0rb1t3r
+ *  GraphServlet
+ *  Copyright 14.10.2015 by Michael Peter Christen, @0rb1t3r
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -38,8 +38,8 @@ import twitter4j.TwitterException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class UserServlet extends HttpServlet {
-   
+public class GraphServlet extends HttpServlet {
+    
     private static final long serialVersionUID = 8578478303032749879L;
 
     @Override
@@ -68,10 +68,7 @@ public class UserServlet extends HttpServlet {
         for (String screen_name: screen_names) {
             try {
                 Map<String, Object> twitterUserEntry = TwitterAPI.getUser(screen_name, false);
-                if (twitterUserEntry != null) {
-                    TwitterAPI.enrichLocation(twitterUserEntry);
-                    twitterUserEntries.add(twitterUserEntry);
-                }
+                if (twitterUserEntry != null) twitterUserEntries.add(twitterUserEntry);
             } catch (TwitterException e) {}
         }
         Map<String, Object> topology = null;
@@ -81,9 +78,7 @@ public class UserServlet extends HttpServlet {
         
         // generate json
         Map<String, Object> m = new LinkedHashMap<>();
-        Map<String, Object> metadata = new LinkedHashMap<>();
-        metadata.put("client", post.getClientHost());
-        m.put("search_metadata", metadata);
+        m.put("edges", post.getClientHost());
 
         if (twitterUserEntries.size() == 1) m.put("user", twitterUserEntries.iterator().next());
         if (twitterUserEntries.size() > 1) m.put("users", twitterUserEntries);
@@ -95,8 +90,28 @@ public class UserServlet extends HttpServlet {
         sos.print((minified ? new ObjectMapper().writer() : new ObjectMapper().writerWithDefaultPrettyPrinter()).writeValueAsString(m));
         if (jsonp) sos.println(");");
         sos.println();
-        sos.flush(); sos.close();
         post.finalize();
     }
-    
 }
+
+/*
+ * produce something like that:
+{
+"edges" : "76",
+"maxdepth" : "2",
+"graph" : [{"source":"/en/index.html", "target":"http://fsfe.org/about/basics/freesoftware.en.html", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"http://en.wikipedia.org/wiki/Peer-to-peer", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"http://www.gnu.org/licenses/gpl-2.0.html", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"http://localhost:8090/", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"https://www.youtube.com/watch?v=CFwebavBU0s", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"http://openjdk.java.net/install/", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"https://www.youtube.com/watch?v=iqJuf_EA1UE", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"http://www.yacy-websuche.de/wiki/index.php/En:DebianInstall", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"https://www.youtube.com/watch?v=XDoVNzOMoIo", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"http://suma-ev.de/", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"http://loklak.org/", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"https://shop.spreadshirt.net/geekstuff/", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"},
+{"source":"/en/index.html", "target":"https://twitter.com/share", "type":"Outbound", "depthSource":"-1", "depthTarget":"-1"}
+]
+}
+*/
